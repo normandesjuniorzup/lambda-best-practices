@@ -1,0 +1,32 @@
+service: main-code-appart-lambda-detail
+
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+
+functions:
+  discount-via-integration:
+    handler: lambda-integration/handler.discount
+    events:
+      - http:
+          method: get
+          path: /integration
+          integration: lambda
+          request:
+            template:
+              application/json: '{ "value": $input.params("value"), "discount": $input.params("discount") }'
+          response:
+            headers:
+              Content-Type: "'application/json'"
+            template: '{"totalWithDiscount": $input.path("$")}'
+
+
+  discount-via-proxyt:
+    handler: lambda-proxy/handler.discount
+    events:
+      - http:
+          method: get
+          path: /proxy
