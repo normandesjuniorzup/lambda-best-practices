@@ -1,0 +1,61 @@
+service: reuse-connection-v2
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  region: us-east-1
+  runtime: nodejs14.x
+  lambdaHashingVersion: 20201221
+  environment:
+    DYNAMODB_TABLE: "PersonBlogV2"
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+  
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - dynamodb:Query
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:Scan
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
+functions:
+  hello:
+    handler: handlerv2.hello
+    events:
+      - http:
+          method: get
+          path: /
+          integration: lambda
+          request:
+            template:
+              application/json: '{ "userId": "$input.params("userId")", "message": "$input.params("message")" }'
+
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    NewResource:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions : 
+          -
+            AttributeName: "userId"
+            AttributeType: "S"
+          -
+            AttributeName: "postId"
+            AttributeType: "S"
+        KeySchema:
+          -
+            AttributeName: "userId"
+            KeyType: "HASH"
+          - 
+            AttributeName: "postId"
+            KeyType: "RANGE"
+        ProvisionedThroughput:
+          ReadCapacityUnits: "1"
+          WriteCapacityUnits: "1"
